@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Define the name of the AI agent: syslog_monitor
+
+# Define the path to the syslog file
+syslog_file="/var/log/syslog"
+
+# Function to tail the syslog and reopen if necessary
+tail_syslog() {
+    while true; do
+        if [[ ! -f "$syslog_file" ]]; then
+            echo "Syslog file not found. Waiting for it to appear..."
+            sleep 1
+        else
+            tail -f "$syslog_file"
+            echo "Syslog closed. Reopening..."
+        fi
+    done
+}
+
+tail_syslog
+
+
+

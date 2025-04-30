@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Check if the user is using Bash or Zsh
+if [ -n "$BASH_VERSION" ]; then
+    # Bash Setup
+    echo "Configuring Bash for command logging..."
+    echo 'export PROMPT_COMMAND='"'"'RETRN_VAL=$?;logger -p local6.debug "$(whoami) [$$]: $(history 1 | sed "s/^[ ]*[0-9]\+[ ]*//" ) [$RETRN_VAL]"'"'" >> /etc/bashrc
+elif [ -n "$ZSH_VERSION" ]; then
+    # Zsh Setup
+    echo "Configuring Zsh for command logging..."
+    echo 'precmd() { eval '\''RETRN_VAL=$?;logger -p local6.debug "$(whoami) [$$]: $(history | tail -n1 | sed "s/^[ ]*[0-9]\+[ ]*//" ) [$RETRN_VAL]"'\'' }' >> /etc/zshrc
+else
+    echo "Unsupported shell. Please use Bash or Zsh."
+    exit 1
+fi
+
+# Configure syslog
+echo "Configuring syslog for command logging..."
+echo 'local6.*    /var/log/commands.log' > /etc/rsyslog.d/commands.log.conf
+
+# Restart syslog service
+systemctl restart rsyslog
+
+echo "Setup complete. Bash and Zsh commands will now be logged to /var/log/commands.log."

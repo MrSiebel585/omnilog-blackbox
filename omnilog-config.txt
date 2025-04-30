@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Installer and Configurator for Logging Tools
+# Tools: glogg, lnav, logcheck, logstash, logrotate
+
+LOGFILE="$HOME/install_log_tools.log"
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo -e "${GREEN}Starting installation and configuration of log tools...${NC}" | tee -a "$LOGFILE"
+
+# Update and install packages
+sudo apt update >> "$LOGFILE" 2>&1 || {
+    echo -e "${RED}Failed to update packages. Exiting.${NC}" | tee -a "$LOGFILE"
+    exit 1
+}
+
+PACKAGES=(glogg lnav logcheck logstash logrotate)
+for pkg in "${PACKAGES[@]}"; do
+    echo -e "${GREEN}Installing $pkg...${NC}" | tee -a "$LOGFILE"
+    sudo apt install -y "$pkg" >> "$LOGFILE" 2>&1 || {
+        echo -e "${RED}Failed to install $pkg.${NC}" | tee -a "$LOGFILE"
+    }
+done
+
+# -------------------------------
+# Configure logrotate
+# -------------------------------
+echo -e "${GREEN}Configuring logrotate for /var/log/syslog...${NC}" | tee -a "$LOGFILE"
+
+cat <<EOF | sudo tee /etc/logrotate.d/custom_syslog > /dev/null
+/var/log/syslog {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 0640 syslog adm
+    postrotate
+        /usr/lib/rsyslog/rsyslog-rotate
+    endscript
+}
+EOF
+
+# -------------------------------
+# Configure logcheck
+# -------------------------------
+echo -e "${GREEN}Configuring logcheck...${NC}" | tee -a "$LOGFILE"
+
+sudo sed -i 's/^REPORTLEVEL=.*/REPORTLEVEL="workstation"/' /etc/logcheck/logcheck.conf
+sudo sed -i 's/^SENDMAIL=/SENDMAIL="quiet"/' /etc/logcheck/logcheck.conf
+
+# Add cronjob if not exists
+CRON_LINE="0 * * * * /usr/sbin/logcheck"
+( sudo crontab -l | grep -q '/usr/sbin/logcheck' ) || (
+    echo -e "${GREEN}Adding logcheck to root's crontab (hourly)...${NC}" | tee -a "$LOGFILE"
+    (sudo crontab -l 2>/dev/null; echo "$CRON_LINE") | sudo crontab -
+)
+
+echo -e "${GREEN}Configuration complete. Logs saved to $LOGFILE${NC}"

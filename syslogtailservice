@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo '[Unit]
+Description=Syslog Monitor Service
+After=syslog.target
+
+[Service]
+ExecStart=/usr/local/bin/syslogtailmon
+Restart=always
+
+[Install]
+WantedBy=multi-user.target' >>  /etc/systemd/system/syslogtailmon.service
+
+
+sudo systemctl enable syslogtailmon.service
+sudo systemctl start syslogtailmon.service
+

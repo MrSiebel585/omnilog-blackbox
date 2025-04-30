@@ -1,0 +1,8 @@
+#!/bin/bash
+
+sudo tail /var/log/syslog
+sudo tail /var/log/messages
+
+sudo tail /var/log/apache2/access.log
+sudo tail /var/log/apache2/error.log
+

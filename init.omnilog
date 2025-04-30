@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Read the syslog file line by line
+tail -f /var/log/syslog | while read -r line; do
+
+  # Add a timestamp to each line
+  timestamp=$(date +"%Y-%m-%d %T")
+
+  # Construct the comment explaining the line
+  comment="# $timestamp: $line"
+
+  # Append the comment to the new log file
+  echo "$comment" >> /var/log/omniscient.log
+  
+done

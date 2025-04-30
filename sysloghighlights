@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Define the name of the AI agent: syslog_highlighter
+
+# Check if the script is run as root, which is required to access /var/log/syslog
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root to access /var/log/syslog." 
+   exit 1
+fi
+
+# Create a backup of the original syslog
+cp /var/log/syslog /var/log/syslog.bak
+
+# Use sed to format and highlight specific log entries in the syslog
+sed -E 's/([A-Za-z]+ [0-9]+ [0-9:]+) [^:]+:/\1/' /var/log/syslog.bak | \
+    sed -E -e '/error|fail|exception|critical/ s/\\e\[0m/\\e\[31m&\\e\[0m/g' > /var/log/syslog.highlighted
+
+# Inform the user that the highlighting process is complete
+echo "Log entries in /var/log/syslog that contain 'error', 'fail', 'exception', or 'critical' have been highlighted and saved as /var/log/syslog.highlighted."
+
+# Provide instructions for viewing the highlighted syslog
+echo "To view the highlighted syslog, you can use the 'cat' command:"
+echo "cat /var/log/syslog.highlighted"
+
+sleep 5
+
+cat /var/log/syslog.highlighted
