@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+import os
+import re
+import time
+import mysql.connector
+
+# Define MySQL/MariaDB connection parameters
+db_config = {
+    "host": "localhost",
+    "user": "root",
+    "password": "hacker",
+    "database": "omnilog",
+}
+
+# Define the log files you want to monitor
+log_files = [
+    "/var/log/auth.log",
+    "/var/log/syslog",
+    # Add more log file paths as needed
+]
+
+# Initialize a MySQL/MariaDB connection
+try:
+    connection = mysql.connector.connect(**db_config)
+    cursor = connection.cursor()
+    print("Connected to MariaDB")
+except mysql.connector.Error as e:
+    print(f"Error: {e}")
+    exit(1)
+
+# Regular expression pattern to extract timestamps from log entries
+timestamp_pattern = r"^\w{3} \d{1,2} \d{2}:\d{2}:\d{2}"
+
+def process_log_file(log_file):
+    try:
+        with open(log_file, "r") as file:
+            file.seek(0, os.SEEK_END)
+            while True:
+                line = file.readline()
+                if not line:
+                    time.sleep(0.1)
+                    continue
+
+                timestamp_match = re.match(timestamp_pattern, line)
+                if timestamp_match:
+                    timestamp = timestamp_match.group(0)
+                    log_entry = line[len(timestamp) + 1 :].strip()  # Extract log entry excluding timestamp
+
+                    # Insert log entry into MariaDB
+                    sql = "INSERT INTO logs (timestamp, log_entry) VALUES (%s, %s)"
+                    values = (timestamp, log_entry)
+                    cursor.execute(sql, values)
+                    connection.commit()
+    except KeyboardInterrupt:
+        cursor.close()
+        connection.close()
+        print("\nScript terminated.")
+    except Exception as e:
+        print(f"Error processing log file '{log_file}': {e}")
+
+# Create a 'logs' table in the MariaDB database if it doesn't exist
+create_table_sql = """
+CREATE TABLE IF NOT EXISTS logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    timestamp DATETIME,
+    log_entry TEXT
+);
+"""
+
+cursor.execute(create_table_sql)
+connection.commit()
+
+# Monitor log files
+for log_file in log_files:
+    print(f"Monitoring log file: {log_file}")
+    process_log_file(log_file)
+

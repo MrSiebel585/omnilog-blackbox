@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+import subprocess
+import time
+
+# Define a list of log files to watch
+log_files = [
+    '/var/log/auth.log',
+    '/var/log/apt/term.log',
+    '/var/log/apt/history.log',
+    '/var/log/dpkg.log',
+    '/var/log/messages',
+]
+
+# Define a list of log commands to watch
+log_commands = [
+    'dmesg',
+    'journalctl -xb',
+]
+
+# Function to tail a log file and display new entries
+def tail_log_file(log_file):
+    try:
+        with open(log_file, 'r') as file:
+            file.seek(0, 2)  # Move to the end of the file
+            while True:
+                line = file.readline()
+                if line:
+                    print(line.strip())
+                time.sleep(0.1)  # Adjust the delay as needed
+    except KeyboardInterrupt:
+        pass
+
+# Function to run a log command and display its output
+def run_log_command(log_command):
+    try:
+        process = subprocess.Popen(log_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for line in process.stdout:
+            print(line.decode('utf-8').strip())
+    except KeyboardInterrupt:
+        process.terminate()
+
+# Watch log files
+for log_file in log_files:
+    print(f"Watching log file: {log_file}")
+    tail_log_file(log_file)
+
+# Watch log commands
+for log_command in log_commands:
+    print(f"Watching log command: {log_command}")
+    run_log_command(log_command)

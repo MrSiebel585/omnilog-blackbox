@@ -1,0 +1,252 @@
+#!/bin/bash
+ 
+apt install -y figlet; wait
+
+figlet "Omnilog"
+
+# Check if the script is being run as root
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be run as root."
+  exit 1
+fi
+
+# Install Logwatch using the appropriate package manager
+if command -v apt-get &> /dev/null; then
+  apt-get update
+  apt-get install logwatch -y
+elif command -v yum &> /dev/null; then
+  yum install logwatch -y
+else
+  echo "Unsupported package manager. Please install Logwatch manually."
+  exit 1
+fi
+
+# Configure Logwatch to send reports via email
+echo "Logwatch Configuration:"
+read -p "Enter the email address where you want to receive reports: " email
+
+if [ -z "$email" ]; then
+  echo "You must provide an email address for report delivery."
+  exit 1
+fi
+
+# Create a Logwatch configuration file
+cat <<EOF > /etc/logwatch/conf/logwatch.conf
+# Logwatch Configuration File
+MailTo = $email
+MailFrom = logwatch@omniscient.lan
+Print = Yes
+Range = yesterday
+Detail = High
+Service = All
+EOF
+
+# Optionally, you can customize Logwatch configuration further by editing /etc/logwatch/conf/logwatch.conf
+
+# Create a logwatch cron job to generate reports daily
+cat <<EOF > /etc/cron.daily/00logwatch
+#!/bin/bash
+/usr/sbin/logwatch --output mail
+EOF
+
+# Make the logwatch script executable
+chmod +x /etc/cron.daily/00logwatch
+
+# Inform the user that Logwatch has been configured
+echo "Logwatch has been installed and configured. Reports will be sent to $email."
+
+
+
+
+
+#!/bin/bash
+
+# Check if the script is being run as root
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be run as root."
+  exit 1
+fi
+
+# Install Logcheck and Logrotate using the appropriate package manager
+if command -v apt-get &> /dev/null; then
+  apt-get update
+  apt-get install logcheck logrotate -y
+elif command -v yum &> /dev/null; then
+  yum install logcheck logrotate -y
+else
+  echo "Unsupported package manager. Please install Logcheck and Logrotate manually."
+  exit 1
+fi
+
+# Configure Logcheck to send reports via email
+echo "Logcheck Configuration:"
+read -p "Enter the email address where you want to receive reports: " email
+
+if [ -z "$email" ]; then
+  echo "You must provide an email address for report delivery."
+  exit 1
+fi
+
+# Create a Logcheck configuration file
+cat <<EOF > /etc/logcheck/logcheck.conf
+REPORTLEVEL="server"
+SENDMAILTO="$email"
+EOF
+
+# Optionally, you can customize Logcheck configuration further by editing /etc/logcheck/logcheck.conf
+
+# Configure Logrotate to rotate logs
+echo "Logrotate Configuration:"
+read -p "Enter the log files you want to rotate (space-separated): " log_files
+
+if [ -z "$log_files" ]; then
+  echo "You must specify at least one log file for rotation."
+  exit 1
+fi
+
+# Create a Logrotate configuration file for custom log files
+cat <<EOF > /etc/logrotate.d/custom_logs
+$log_files {
+    rotate 7
+    daily
+    compress
+    missingok
+    notifempty
+    create 640 root adm
+}
+EOF
+
+# Optionally, you can customize Logrotate configuration further by editing /etc/logrotate.d/custom_logs
+
+# Inform the user that Logcheck and Logrotate have been configured
+echo "Installing fwlogwatch..."
+
+
+#!/bin/bash
+
+# Check if the script is being run as root
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be run as root."
+  exit 1
+fi
+
+# Install required packages (Perl, AWK, etc.) using the appropriate package manager
+if command -v apt-get &> /dev/null; then
+  apt-get update
+  apt-get install perl awk unzip -y
+elif command -v yum &> /dev/null; then
+  yum install perl awk unzip -y
+else
+  echo "Unsupported package manager. Please install required packages manually."
+  exit 1
+fi
+
+# Create a directory to store FWLogWatch files
+fwlogwatch_dir="/opt/fwlogwatch"
+mkdir -p "$fwlogwatch_dir"
+cd "$fwlogwatch_dir"
+
+# Download and extract FWLogWatch
+fwlogwatch_url="https://github.com/firehol/fwlogwatch/archive/master.zip"
+fwlogwatch_zip="fwlogwatch.zip"
+
+curl -L -o "$fwlogwatch_zip" "$fwlogwatch_url"
+unzip "$fwlogwatch_zip"
+rm -f "$fwlogwatch_zip"
+
+# Move the extracted FWLogWatch files to a more appropriate location
+mv "fwlogwatch-master" "fwlogwatch"
+
+# Create a symlink to fwlogwatch.pl for easier access
+ln -s "$fwlogwatch_dir/fwlogwatch/fwlogwatch.pl" "/usr/local/bin/fwlogwatch"
+
+# Configure FWLogWatch for your firewall logs
+echo "FWLogWatch Configuration:"
+read -p "Enter the path to your firewall log file (e.g., /var/log/firewall.log): " firewall_log_path
+
+if [ -z "$firewall_log_path" ]; then
+  echo "You must provide the path to your firewall log file."
+  exit 1
+fi
+
+# Create a configuration file for FWLogWatch
+cat <<EOF > "$fwlogwatch_dir/fwlogwatch/fwlogwatch.conf"
+# FWLogWatch Configuration File
+logfile = $firewall_log_path
+EOF
+
+# Optionally, you can customize FWLogWatch configuration further by editing $fwlogwatch_dir/fwlogwatch/fwlogwatch.conf
+
+# Inform the user that FWLogWatch has been installed and configured
+echo "FWLogWatch has been installed and configured. You can run it using the 'fwlogwatch' command."
+
+# Optionally, you can create a cron job to regularly run FWLogWatch and generate reports.
+# For example, to run it every day at midnight, add the following line to your crontab:
+# 0 0 * * * /usr/local/bin/fwlogwatch
+
+# Optionally, you may need to install additional Perl modules if FWLogWatch reports any missing dependencies.
+
+
+
+# Inform the user that Logcheck and Logrotate have been configured
+echo "Logcheck and Logrotate have been installed and configured."
+
+printf "# Optionally, you can manually add log files to be monitored by Logcheck in /etc/logcheck/logcheck.logfiles.
+# To do this, open the file for editing:
+# nano /etc/logcheck/logcheck.logfiles
+# Add the paths to the log files you want to monitor.
+
+# Optionally, you can schedule Logrotate to run at regular intervals via a cron job.
+# To edit the Logrotate cron configuration, you can use the following command:
+# crontab -e
+# Then, add a line to schedule Logrotate to run daily, for example:
+# 0 0 * * * /usr/sbin/logrotate -f /etc/logrotate.conf
+
+# Finally, you may want to manually test Logcheck to ensure it's working correctly:
+# Run the following command to check logs and send a report:
+# logcheck
+# It will analyze logs and send a report to the specified email address.
+
+# Additionally, you can manually trigger Logrotate to rotate logs by running:
+# logrotate -f /etc/logrotate.conf
+
+# You can check Logrotate's status and verify log rotation by inspecting log files in /var/log.
+
+# That's it! You've successfully configured Logcheck and Logrotate for log monitoring and log rotation on your system."
+
+
+
+# Inform the user that FWLogWatch has been installed and configured
+echo "Configuring Rsyslog Filtering Rules..."
+
+
+#!/bin/bash
+
+# Check if the script is being run as root
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be run as root."
+  exit 1
+fi
+
+# Define the custom rsyslog configuration file path
+custom_rsyslog_conf="/etc/rsyslog.d/10-custom-filter.conf"
+
+# Create a custom rsyslog configuration file with filtering rules
+cat <<EOF > "$custom_rsyslog_conf"
+# Filter and separate log messages based on facility
+
+# Log auth messages to /var/log/auth.log
+auth.* /var/log/auth.log
+
+# Log cron messages to /var/log/cron.log
+cron.* /var/log/cron.log
+
+# Log kernel messages to /var/log/kern.log
+kern.* /var/log/kern.log
+EOF
+
+# Restart rsyslog to apply the new configuration
+systemctl restart rsyslog
+
+# Inform the user that the rsyslog filtering rules have been set up
+echo "Basic rsyslog filtering rules have been configured. Log messages will be separated into different log files."

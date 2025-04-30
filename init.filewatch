@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Define the directory to monitor
+DIRECTORY_TO_WATCH="/path/to/monitor"
+
+# Define the name of the service
+SERVICE_NAME="file_watcher"
+
+# Define the log file
+LOG_FILE="/var/log/file_watcher.log"
+
+# Check if the script is run with root privileges
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run this script as root."
+    exit 1
+fi
+
+# Install fswatch if not already installed
+if ! command -v fswatch &> /dev/null; then
+    echo "Installing fswatch..."
+    apt-get update
+    apt-get install -y fswatch
+fi
+
+# Create the directory to monitor if it doesn't exist
+mkdir -p "$DIRECTORY_TO_WATCH"
+
+# Create the service script
+SERVICE_SCRIPT="/usr/local/bin/$SERVICE_NAME.sh"
+echo "#!/bin/bash" > "$SERVICE_SCRIPT"
+echo "fswatch -r \"$DIRECTORY_TO_WATCH\" | while read file_event; do" >> "$SERVICE_SCRIPT"
+echo "    logger -t $SERVICE_NAME \"\$file_event\"" >> "$SERVICE_SCRIPT"
+echo "done" >> "$SERVICE_SCRIPT"
+chmod +x "$SERVICE_SCRIPT"
+
+# Create the rsyslog configuration
+RSYSLOG_CONFIG="/etc/rsyslog.d/$SERVICE_NAME.conf"
+echo "if \$programname == '$SERVICE_NAME' then \"$LOG_FILE\"" > "$RSYSLOG_CONFIG"
+echo "& stop" >> "$RSYSLOG_CONFIG"
+
+# Restart rsyslog to apply the configuration
+systemctl restart rsyslog
+
+# Create the systemd service unit file
+SYSTEMD_UNIT="/etc/systemd/system/$SERVICE_NAME.service"
+echo "[Unit]" > "$SYSTEMD_UNIT"
+echo "Description=$SERVICE_NAME Service" >> "$SYSTEMD_UNIT"
+echo "" >> "$SYSTEMD_UNIT"
+echo "[Service]" >> "$SYSTEMD_UNIT"
+echo "ExecStart=$SERVICE_SCRIPT" >> "$SYSTEMD_UNIT"
+echo "Restart=always" >> "$SYSTEMD_UNIT"
+echo "" >> "$SYSTEMD_UNIT"
+echo "[Install]" >> "$SYSTEMD_UNIT"
+echo "WantedBy=multi-user.target" >> "$SYSTEMD_UNIT"
+
+# Enable and start the service
+systemctl enable "$SERVICE_NAME"
+systemctl start "$SERVICE_NAME"
+
+echo "File watcher service installed and started."

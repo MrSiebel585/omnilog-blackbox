@@ -1,0 +1,1 @@
+sudo systemctl daemon-reload && sudo systemctl start syslog_processor.service && sudo systemctl status syslog_processor.service

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Check if the script is run with root privileges
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run this script as root."
+    exit 1
+fi
+
+# Install Zeitgeist packages
+echo "Installing Zeitgeist packages..."
+apt-get update
+apt-get install -y zeitgeist zeitgeist-core zeitgeist-datahub
+
+# Enable and start the Zeitgeist service
+echo "Enabling and starting the Zeitgeist service..."
+systemctl enable zeitgeist
+systemctl start zeitgeist
+
+# Configure Zeitgeist for all users (global settings)
+echo "Configuring Zeitgeist for all users..."
+
+# Set the Zeitgeist data source as "file:///var/log/zeitgeist/zeitgeist-v1.sqlite"
+sudo -u nobody -H gsettings set org.gnome.zeitgeist.engine datasource "['file:///var/log/zeitgeist/zeitgeist-v1.sqlite']"
+
+echo "Zeitgeist installation and configuration completed."

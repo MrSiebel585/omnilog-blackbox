@@ -1,0 +1,13 @@
+[Unit]
+Description=Syslog Processor Service
+After=network.target
+
+[Service]
+Type=simple
+User=<youruser>
+WorkingDirectory=/opt/omniscient/omnilog
+ExecStart=/opt/omniscient/omnilog/syslog_lang/venv/bin/python /opt/omniscient/omnilog/syslog_language_model_processor.py --config /etc/syslog_processor/config.ini
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
